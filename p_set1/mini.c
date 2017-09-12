@@ -6,13 +6,13 @@
 
 int main(int argc, char **argv){
 
-	char *bit_val = NULL;
+	char *bit_val = 0;
 	char *out_file = NULL; 
 	int c; 
 
 	opterr = 0; 
 
-	while((c = getopt(argc, argv, "bo:")) != -1)	
+	while((c = getopt(argc, argv, "b:o:")) != -1)	
 		switch(c){
 			case 'b':
 				bit_val = optarg; 
@@ -23,9 +23,10 @@ int main(int argc, char **argv){
 			case '?':
 				if (optopt == 'b' || optopt == 'o')
 					fprintf(stderr, "Option -%c requires an argument", optopt);
+					return 1; 
 			default: 
 				abort(); 
 		}
 		printf("%s%s", bit_val, out_file);
-
+		return 0; 
 }
