@@ -10,12 +10,25 @@ void error_message(const char *message, const char *error_val, const char *file_
 	if(!error_val)
 		fprintf(stderr, "%s\n", message);
 	else
-		fprintf(stderr, "%s Error value:%s File Name:%s\n", message, error_val, file_val);
+		fprintf(stderr, "%s Error value: %s. File Name: %s\n", message, error_val, file_val);
 	exit(-1);
 }
 
 void file_manipulation(const char *in_file, const char *out_file, int fin, int fout, char * data, long * bit_val){
-	char * read_data, write_data; 
+	int read_data, write_data; 
+	while((read_data = read(fin, data, *bit_val)) > 0)
+		if((write_data = write(fout, data, *bit_val)) < 0)
+			error_message("ERROR! Could not write data.", strerror(errno), out_file);
+		else if(write_data != read_data){
+			data = data + write_data;
+			read_data = read_data - write_data;
+		} 
+		else
+			break; 
+
+	if(read_data < 0)
+		error_message("ERROR! Could not read data.", strerror(errno), in_file);
+
 }
 
 int main(int argc, char **argv){
@@ -51,7 +64,7 @@ int main(int argc, char **argv){
 				out_file = optarg; 
 				break; 	
 			default: 
-				error_message("ERROR: Please follow this format\nminicat [-b ###] [-o outfile] infile1 [...infile2...]\nOR\nminicat [-b ###] [-o outfile] infile1 [...infile2...]\n", 0, 0); 
+				error_message("ERROR: Please follow this format\nminicat [-b ###] [-o outfile] infile1 [...infile2...]\nOR\nminicat [-b ###] [-o outfile]\n", 0, 0); 
 		}
 
 	if(!out_file) {
@@ -71,7 +84,7 @@ int main(int argc, char **argv){
 			in_file = "stdin";
 		}
 		else if((fin = open(argv[optind], O_RDONLY) < 0)){
-			error_message("ERROR: Could not open for reading!", strerror(errno), in_file);
+			error_message("ERROR: Could not open for reading!", strerror(errno), argv[optind]);
 		}
 		else 
 			in_file = argv[optind];
