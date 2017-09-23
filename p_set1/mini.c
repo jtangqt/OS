@@ -78,7 +78,7 @@ int main(int argc, char **argv){
 		bit_val = 4096; 
 	char data[bit_val];
 
-	for(int i = optind; i < argc; ++optind){
+	for(; optind < argc; ++optind){
 		if(!strcmp("-", argv[optind])){
 			fin = STDIN_FILENO;
 			in_file = "stdin";
