@@ -27,7 +27,6 @@ void file_manipulation(const char *in_file, const char *out_file, int fin, int f
 			else
 				break; 
 		}
-		
 	if(read_data < 0)
 		error_message("ERROR! Could not read data.", strerror(errno), in_file);
 
@@ -105,8 +104,3 @@ int main(int argc, char **argv){
 
 	return 0; 
 }
-
-//the operation that was being attempted
-//the object being operated on (the file name)
-//other relevant parameters
-//the error returned (strerroror(errno))
