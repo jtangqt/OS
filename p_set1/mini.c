@@ -15,17 +15,19 @@ void error_message(const char *message, const char *error_val, const char *file_
 }
 
 void file_manipulation(const char *in_file, const char *out_file, int fin, int fout, char * data, long * bit_val){
-	int read_data, write_data; 
+	int read_data = 0, write_data = 0; 
 	while((read_data = read(fin, data, *bit_val)) > 0)
-		if((write_data = write(fout, data, *bit_val)) < 0)
-			error_message("ERROR! Could not write data.", strerror(errno), out_file);
-		else if(write_data != read_data){
-			data = data + write_data;
-			read_data = read_data - write_data;
-		} 
-		else
-			break; 
-
+		while(1){
+			if((write_data = write(fout, data, read_data)) <= 0)
+				error_message("ERROR! Could not write data.", strerror(errno), out_file);
+			else if(write_data != read_data){
+				data += write_data;
+				read_data -= write_data;
+			} 
+			else
+				break; 
+		}
+		
 	if(read_data < 0)
 		error_message("ERROR! Could not read data.", strerror(errno), in_file);
 
@@ -35,7 +37,7 @@ int main(int argc, char **argv){
 
 	long bit_val = -1;
 	const char *out_file = NULL, *in_file = NULL;
-	int oCount = 0, bCount = 0, fout = -1, fin = -1; 
+	int oCount = 0, bCount = 0, fout, fin; 
 	int c;
 
 	while((c = getopt(argc, argv, "b:o:")) != -1)	
@@ -81,25 +83,24 @@ int main(int argc, char **argv){
 	for(; optind < argc; ++optind){
 		if(!strcmp("-", argv[optind])){
 			fin = STDIN_FILENO;
-			in_file = "stdin";
+			argv[optind] = "stdin";
 		}
-		else if((fin = open(argv[optind], O_RDONLY) < 0)){
+		else if((fin = open(argv[optind], O_RDONLY)) < 0)
 			error_message("ERROR: Could not open for reading!", strerror(errno), argv[optind]);
-		}
-		else 
+		else
 			in_file = argv[optind];
 	}
 
 	if(fin < 0) {
-		fin = STDIN_FILENO; 
-		in_file = "stdin";
+		fin = STDIN_FILENO;
+		argv[optind] = "stdin";
 	}
 
 	file_manipulation(in_file, out_file, fin, fout, data, &bit_val);
 
 	if(fin == -1 && close(fin) < 0)
-		error_message("ERROR: Could not close input file!", strerror(errno), in_file);
-	else if(fout == -1 && close(fout) < 0)
+			error_message("ERROR: Could not close input file!", strerror(errno), in_file);
+	if(fout == -1 && close(fout) < 0)
 		error_message("ERROR: Could not close output file!", strerror(errno), out_file);
 
 	return 0; 
