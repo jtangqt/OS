@@ -5,12 +5,11 @@
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <sys/stat.h> 
+#include <sys/types.h>
+#include <dirent.h>
 
-
-char * create_dir() {
-	char * dir; 
-	return dir; 
-}
+void search_tree(const char*, const char*);
 
 void error_message(const char *message, const char *error_val, const char *file_val){
 	if(!error_val)
@@ -20,187 +19,84 @@ void error_message(const char *message, const char *error_val, const char *file_
 	exit(-1);
 }
 
-int is_regular_file(const char *path)
-{
-    struct stat path_stat;
-    stat(path, &path_stat);
-    return S_ISREG(path_stat.st_mode);
-}
-
-void search_file(int arg_no, const char *file_location){	//recursively search down the paths (go through the directory first, so argv[2])
-	const char *location, *next_location; 
-	//parse the string for the first location (to go to that location)
-	if(next_location != NULL){
-		if(arg_no == 1 && !is_regular_file(location))
-			//check that this is a file, error message
-		if(arg_no == 2 && is_regular_file(location))
-			//check that it is a directory, error message
+void message(int n_link, char *link, char *read, char *duplicate){
+	if(!n_link){
+		if(!duplicate)
+			fprintf(stderr, "%s to target", link); 
+		else  
+			fprintf(stderr, "%s to duplicate at %s", link, duplicate); 
 	}
+	else{
+		fprintf(stderr, "duplicate to target"); 
+		if(n_link > 1)	
+			fprintf(stderr, " (n_link = %i)", n_link); 
+	}
+	if(!read)	
+		fprintf(stderr, ", %s to read by other\n", read); 
 
-	//here, the next location exists, therefore this location must not exist
-
-	//check to make sure that we can go to the next location (the next location is a valid location)
-	//if that checks out then print out the information
-	//if this is not the end, search_file(int arg_no, string file_location-file_location - 1)
 }
 
+//take all elements in the directory and check if they are identical to the file given
+//if they are identical, then print out all of its information 
+//pathname, linkcount > 1 (hardlink, symlink, distinct -> nlink), and read by users? 
 int main(int argc, char **argv){
 	int c; 
-	const char *open_file, *o_dir; 
+
 	if(argc > 2){
-		//TODO!! too many arguments
 		error_message("ERROR! Too many input arguments. Please follow this format\nfinddir [direction to input file] [starting directory]\n", 0, 0); 
 	}
 
-	open_file = argv[1];
-
-	if (argv[2] != NULL){
-		o_dir = argv[2]; //original directory
-		search_file(2, o_dir);
-	} //TODO!! can we assume where we are now is a directory? 
-
-	search_file(1, open_file);
-
+	search_tree(argv[1], argv[2]);
 }
 
-#include <sys/stat.h> 
-#include <string.h> 
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>       
-#include <sys/types.h>
-#include <dirent.h>
-
-void search_tree(const char*);
-
-
-//take all elements in the directory and check if they are identical to the file given
-//if they are identical, then print out all of its information 
-//pathname, linkcount > 1 (hardlink, symlink, distinct -> nlink), and read by users? 
-int main(int argc, char **argv){
+void search_tree(const char * file_path, const char *start_path){
 	struct stat file_st; 
-	lstat(argv[1], &file_st);
-	search_tree(argv[1], &file_st, argv[2]);
-	
-}
-
-
-
-void search_tree(const char * file_path, struct stat *file_st, const char *start_path){
-	
-	// going through each layer
-	
-	// if file
-	
-	
-	//if directory
 	DIR *dir;
 	struct dirent *de; 
+	struct stat st;
+	char a, b;
+	FILE *file1, *file2; 
+	lstat(file_path, &file_st);
+	
+	// going through each layer	
 	dir = opendir(start_path); 
-	struct stat st; 
 	while(de = readdir(dir)){
 		char *next_path = (char *)malloc(strlen(start_path) + strlen(de -> d_name) + 2); 
 		sprintf(next_path, "%s/%s", start_path, de -> d_name); 
 		lstat(next_path, &st);
 		if((st.st_mode & S_IFMT) != S_IFDIR && (st.st_mode & S_IFMT) != S_IFREG && (st.st_mode & S_IFMT) != S_IFLNK)
 			continue; 
+		//if directory
 		if((st.st_mode & S_IFMT) == S_IFDIR)
-			search_tree(file_path, next_path); 
+			search_tree(file_path, next_path);
+		//if regular file 
 		else if((st.st_mode & S_IFMT) == S_IFREG){
-			//TODO!! MEMCPY SHIT
-			if(st.st_size != file_st -> st_size)
+			if(st.st_size != file_st.st_size) //check to see if the sizes match
 				continue; 
 			//compare actual contents
-			file1 = fopen(file_path);
-			file2 = fopen(next_path); 
-			char a, b; 
+			file1 = fopen(file_path, "r");
+			file2 = fopen(next_path, "r"); 
 			do {
 				a = fgetc(file1);
 				b = fgetc(file2);
 				if (a != b)
 					break;
-			} while(a != EOF && b != EOF)
+			} while(a != EOF && b != EOF); 
 			if (a != b)
-				continue; 
+				continue;
+			fprintf(stderr, "%s ", next_path); 
+			int n_link = 0;
+			char *read = NULL, *duplicate = NULL;  
+			//TODO!! change the info for message
+			//the pathname of the matching file; if the target count has a link count > 1 and hard link; otherwise distinct inode, output nlink value of matching file; can it be read by others
+			message(n_link, "hard link", read, duplicate);
+			fclose(file1);
+			fclose(file2); 
 		}
-		else
-			//TODO!! SYMLINK 
-		
-		fprintf(stderr, "%s\n", de -> d_name); 
-	}
-}
-
-
-
-#include <sys/stat.h> 
-#include <string.h> 
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>       
-#include <sys/types.h>
-#include <dirent.h>
-
-void search_tree(const char*);
-
-
-//take all elements in the directory and check if they are identical to the file given
-//if they are identical, then print out all of its information 
-//pathname, linkcount > 1 (hardlink, symlink, distinct -> nlink), and read by users? 
-int main(int argc, char **argv){
-	struct stat file_st; 
-	lstat(argv[1], &file_st);
-	search_tree(argv[1], &file_st, argv[2]);
-	
-}
-
-
-
-void search_tree(const char * file_path, struct stat *file_st, const char *start_path){
-	
-	// going through each layer
-	
-	// if file
-	
-	
-	//if directory
-	DIR *dir;
-	struct dirent *de; 
-	dir = opendir(start_path); 
-	struct stat st; 
-	while(de = readdir(dir)){
-		char *next_path = (char *)malloc(strlen(start_path) + strlen(de -> d_name) + 2); 
-		sprintf(next_path, "%s/%s", start_path, de -> d_name); 
-		lstat(next_path, &st);
-		if((st.st_mode & S_IFMT) != S_IFDIR && (st.st_mode & S_IFMT) != S_IFREG && (st.st_mode & S_IFMT) != S_IFLNK)
-			continue; 
-		if((st.st_mode & S_IFMT) == S_IFDIR)
-			search_tree(file_path, next_path); 
-		else if((st.st_mode & S_IFMT) == S_IFREG){
-			//TODO!! MEMCPY SHIT
-			if(st.st_size != file_st -> st_size)
-				continue; 
-			//compare actual contents
-			file1 = fopen(file_path);
-			file2 = fopen(next_path); 
-			char a, b; 
-			do {
-				a = fgetc(file1);
-				b = fgetc(file2);
-				if (a != b)
-					break;
-			} while(a != EOF && b != EOF)
-			if (a != b)
-				continue; 
+		else{
+			char *duplicate_sym = NULL; 
+			//TODO!! change the info for symlink
+			message(0, "sym link", 0, duplicate_sym); 
 		}
-		else
-			//TODO!! SYMLINK 
-		
-		fprintf(stderr, "%s\n", de -> d_name); 
 	}
 }
