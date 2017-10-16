@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 
-void search_tree(char*, char*, char *);
+void search_tree(char*, char*);
 
 void error_message(const char *message, const char *error_val, const char *file_val){
 	if(!error_val)
@@ -51,11 +51,11 @@ int main(int argc, char **argv){
 
 	chdir(argv[2]);
 	getcwd(cwd, sizeof(cwd));
-	search_tree(argv[1], cwd, argv[2]);
+	search_tree(argv[1], cwd);
 
 }
 
-void search_tree(char * file_path, char *s_path, char *orig_s_path){
+void search_tree(char * file_path, char *s_path){
 	struct stat file_st, compare; 
 	DIR *dir;
 	struct dirent *de; 
@@ -83,34 +83,33 @@ void search_tree(char * file_path, char *s_path, char *orig_s_path){
 			continue; 
 		
 		if((st.st_mode & S_IFMT) == S_IFDIR) //if directory
-			search_tree(file_path, next_path, orig_s_path);
+			search_tree(file_path, next_path);
 		
 		else if((st.st_mode & S_IFMT) == S_IFREG){ //if regular file 
-			if(st.st_size != file_st.st_size) //check to see if the sizes match
-				continue; 
-			
-			file1 = fopen(file_path, "r"); //now compare actual contents
-			file2 = fopen(next_path, "r"); 
-			
-			do {
-				a = fgetc(file1);
-				b = fgetc(file2);
-				if (a != b)
-					break;
-			} while(a != EOF && b != EOF); 
-			if (a != b)
-				continue; 
-			
 			if(st.st_mode & S_IROTH) //if it's readable by others
 				read = "able";
 			else
 				read = "not able";
 			
+			fprintf(stderr, "%s, %s, %lu, %lu\n", file_path, next_path, st.st_ino, file_st.st_ino);
 			if(!(st.st_ino == file_st.st_ino)){ //this indicates a duplicate
+				if(st.st_size != file_st.st_size) //check to see if the sizes match
+					continue; 
+				file1 = fopen(file_path, "r"); //now compare actual contents
+				file2 = fopen(next_path, "r"); 
+			
+				do {
+					a = fgetc(file1);
+					b = fgetc(file2);
+					if (a != b)
+						break;
+				} while(a != EOF && b != EOF); 
+				if (a != b)
+					continue; 
 				duplicate = "duplicate";
 				n_link = file_st.st_nlink; 
 			}
-			
+		
 			message(next_path, n_link, "hard link", read, duplicate);
 			fclose(file1);
 			fclose(file2); 
