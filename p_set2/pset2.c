@@ -9,30 +9,34 @@
 #include <sys/types.h>
 #include <dirent.h>
 
-void search_tree(const char*, const char*);
+char *other_syms[50];
+int i = 1; 
+void search_tree(char*, char*);
 
 void error_message(const char *message, const char *error_val, const char *file_val){
 	if(!error_val)
 		fprintf(stderr, "%s\n", message);
 	else
-		fprintf(stderr, "%s Error value: %s. File Name: %s\n", message, error_val, file_val);
+		fprintf(stderr, "%s Error value: %s. Name: %s\n", message, error_val, file_val);
 	exit(-1);
 }
 
-void message(int n_link, char *link, char *read, char *duplicate){
+void message(char *next_path, int n_link, char *link, char *read, char *duplicate){
 	if(!n_link){
 		if(!duplicate)
-			fprintf(stderr, "%s to target", link); 
+			fprintf(stderr, "%s\t%s to target", next_path, link); 
 		else  
-			fprintf(stderr, "%s to duplicate at %s", link, duplicate); 
+			fprintf(stderr, "%s\t%s to duplicate at %s", next_path, link, duplicate); 
 	}
 	else{
-		fprintf(stderr, "duplicate to target"); 
+		fprintf(stderr, "%s\tduplicate to target", next_path); 
 		if(n_link > 1)	
 			fprintf(stderr, " (n_link = %i)", n_link); 
 	}
-	if(!read)	
+	if(read)	
 		fprintf(stderr, ", %s to read by other\n", read); 
+	else
+		fprintf(stderr, "\n");
 
 }
 
@@ -40,42 +44,57 @@ void message(int n_link, char *link, char *read, char *duplicate){
 //if they are identical, then print out all of its information 
 //pathname, linkcount > 1 (hardlink, symlink, distinct -> nlink), and read by users? 
 int main(int argc, char **argv){
-	int c; 
+	int c; 	
+	char cwd[1024];
 
-	if(argc > 2){
+	if(argc > 3){
 		error_message("ERROR! Too many input arguments. Please follow this format\nfinddir [direction to input file] [starting directory]\n", 0, 0); 
 	}
 
-	search_tree(argv[1], argv[2]);
+	chdir(argv[2]);
+	getcwd(cwd, sizeof(cwd));
+	other_syms[0] = argv[1]; 
+	search_tree(argv[1], cwd);
+
 }
 
-void search_tree(const char * file_path, const char *start_path){
-	struct stat file_st; 
+void search_tree(char * file_path, char *start_path){
+	struct stat file_st, compare; 
 	DIR *dir;
 	struct dirent *de; 
 	struct stat st;
 	char a, b;
 	FILE *file1, *file2; 
 	lstat(file_path, &file_st);
-	
+
 	// going through each layer	
-	dir = opendir(start_path); 
+	if(!(dir = opendir(start_path))) //check for error in opening a directory
+		error_message("ERROR: Could not open.", strerror(errno), start_path);
 	while(de = readdir(dir)){
+		char *duplicate = NULL, *read = NULL;
+		char buf[512] = {};
+		int n_link = 0;
+
+		if(!strcmp(de -> d_name, "..") || !strcmp(de -> d_name, "."))
+			continue;	
+
 		char *next_path = (char *)malloc(strlen(start_path) + strlen(de -> d_name) + 2); 
 		sprintf(next_path, "%s/%s", start_path, de -> d_name); 
 		lstat(next_path, &st);
+		
 		if((st.st_mode & S_IFMT) != S_IFDIR && (st.st_mode & S_IFMT) != S_IFREG && (st.st_mode & S_IFMT) != S_IFLNK)
 			continue; 
-		//if directory
-		if((st.st_mode & S_IFMT) == S_IFDIR)
+		
+		if((st.st_mode & S_IFMT) == S_IFDIR) //if directory
 			search_tree(file_path, next_path);
-		//if regular file 
-		else if((st.st_mode & S_IFMT) == S_IFREG){
+		
+		else if((st.st_mode & S_IFMT) == S_IFREG){ //if regular file 
 			if(st.st_size != file_st.st_size) //check to see if the sizes match
 				continue; 
-			//compare actual contents
-			file1 = fopen(file_path, "r");
+			
+			file1 = fopen(file_path, "r"); //now compare actual contents
 			file2 = fopen(next_path, "r"); 
+			
 			do {
 				a = fgetc(file1);
 				b = fgetc(file2);
@@ -83,20 +102,38 @@ void search_tree(const char * file_path, const char *start_path){
 					break;
 			} while(a != EOF && b != EOF); 
 			if (a != b)
-				continue;
-			fprintf(stderr, "%s ", next_path); 
-			int n_link = 0;
-			char *read = NULL, *duplicate = NULL;  
-			//TODO!! change the info for message
-			//the pathname of the matching file; if the target count has a link count > 1 and hard link; otherwise distinct inode, output nlink value of matching file; can it be read by others
-			message(n_link, "hard link", read, duplicate);
+				continue; 
+			
+			if(st.st_mode & S_IROTH) //if it's readable by others
+				read = "able";
+			else
+				read = "not able";
+			
+			if(!(st.st_ino == file_st.st_ino)){ //this indicates a duplicate
+				duplicate = "duplicate";
+				n_link = file_st.st_nlink; 
+				other_syms[i] = next_path; 
+				i++; 
+			}
+			
+			message(next_path, n_link, "hard link", read, duplicate);
 			fclose(file1);
 			fclose(file2); 
+		
 		}
+		
 		else{
-			char *duplicate_sym = NULL; 
-			//TODO!! change the info for symlink
-			message(0, "sym link", 0, duplicate_sym); 
+			readlink(next_path, buf, sizeof(buf)-1);
+			
+			if(strcmp(buf, file_path)){
+				char *check_path = (char *)malloc(strlen(start_path) + strlen(buf) + 2); 
+				sprintf(check_path, "%s/%s", start_path, buf); 
+				duplicate = check_path;
+			}
+
+			message(next_path, 0, "sym link", 0, duplicate); 
+		
 		}
 	}
+	closedir(dir);
 }
