@@ -9,9 +9,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 
-char *other_syms[50];
-int i = 1; 
-void search_tree(char*, char*);
+void search_tree(char*, char*, char *);
 
 void error_message(const char *message, const char *error_val, const char *file_val){
 	if(!error_val)
@@ -53,12 +51,11 @@ int main(int argc, char **argv){
 
 	chdir(argv[2]);
 	getcwd(cwd, sizeof(cwd));
-	other_syms[0] = argv[1]; 
-	search_tree(argv[1], cwd);
+	search_tree(argv[1], cwd, argv[2]);
 
 }
 
-void search_tree(char * file_path, char *start_path){
+void search_tree(char * file_path, char *s_path, char *orig_s_path){
 	struct stat file_st, compare; 
 	DIR *dir;
 	struct dirent *de; 
@@ -68,8 +65,8 @@ void search_tree(char * file_path, char *start_path){
 	lstat(file_path, &file_st);
 
 	// going through each layer	
-	if(!(dir = opendir(start_path))) //check for error in opening a directory
-		error_message("ERROR: Could not open.", strerror(errno), start_path);
+	if(!(dir = opendir(s_path))) //check for error in opening a directory
+		error_message("ERROR: Could not open.", strerror(errno), s_path);
 	while(de = readdir(dir)){
 		char *duplicate = NULL, *read = NULL;
 		char buf[512] = {};
@@ -78,15 +75,15 @@ void search_tree(char * file_path, char *start_path){
 		if(!strcmp(de -> d_name, "..") || !strcmp(de -> d_name, "."))
 			continue;	
 
-		char *next_path = (char *)malloc(strlen(start_path) + strlen(de -> d_name) + 2); 
-		sprintf(next_path, "%s/%s", start_path, de -> d_name); 
+		char *next_path = (char *)malloc(strlen(s_path) + strlen(de -> d_name) + 2); 
+		sprintf(next_path, "%s/%s", s_path, de -> d_name); 
 		lstat(next_path, &st);
 		
 		if((st.st_mode & S_IFMT) != S_IFDIR && (st.st_mode & S_IFMT) != S_IFREG && (st.st_mode & S_IFMT) != S_IFLNK)
 			continue; 
 		
 		if((st.st_mode & S_IFMT) == S_IFDIR) //if directory
-			search_tree(file_path, next_path);
+			search_tree(file_path, next_path, orig_s_path);
 		
 		else if((st.st_mode & S_IFMT) == S_IFREG){ //if regular file 
 			if(st.st_size != file_st.st_size) //check to see if the sizes match
@@ -112,8 +109,6 @@ void search_tree(char * file_path, char *start_path){
 			if(!(st.st_ino == file_st.st_ino)){ //this indicates a duplicate
 				duplicate = "duplicate";
 				n_link = file_st.st_nlink; 
-				other_syms[i] = next_path; 
-				i++; 
 			}
 			
 			message(next_path, n_link, "hard link", read, duplicate);
@@ -124,10 +119,10 @@ void search_tree(char * file_path, char *start_path){
 		
 		else{
 			readlink(next_path, buf, sizeof(buf)-1);
-			
+
 			if(strcmp(buf, file_path)){
-				char *check_path = (char *)malloc(strlen(start_path) + strlen(buf) + 2); 
-				sprintf(check_path, "%s/%s", start_path, buf); 
+				char *check_path = (char *)malloc(strlen(s_path) + strlen(buf) + 2); 
+				sprintf(check_path, "%s/%s", s_path, buf); 
 				duplicate = check_path;
 			}
 
