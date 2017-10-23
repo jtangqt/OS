@@ -30,6 +30,39 @@ void aesthetics(){
 
 int processing(char *input){
 	//TODO
+	//parse to tokens
+	char line[1024];
+	char token[32]
+	memset(line, '\0', sizeof(line)); 
+	strcpy(dest, line);
+	char file_name[31]; 
+
+	while(token = strtok(line, " ")){
+		//< 
+		if(token[0] == '<')
+			//open filename and redirect stdin
+			strcpy(file_name, token
+		//>
+		if(token[0] == '>'){
+			//>>
+			if(token[1] == '>')
+				//open/create/append filename and redirect stdout
+			else
+				//open/create/truncate filename and redirect stdout
+		}
+		//2>
+		if(token[0] == '2' && token[1] == '>'){
+			//2>>
+			if(token[2] == '>')
+				//open/create/append filename and redirect stderr
+			else
+				//open/create/truncate filename and redirect stderr
+		}
+	
+	}
+	
+	//do what the instructions say to do
+	//implement cd 
 	return 0; 
 }
 
@@ -63,8 +96,5 @@ int main(int argc, char **argv){
 
 	return val; 
 
-	//parse to tokens
-	//do what the instructions say to do
-	//implement cd 
 	
 }
