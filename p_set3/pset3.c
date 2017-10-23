@@ -56,7 +56,7 @@ int main(int argc, char **argv){
 			//understand the data
 			val += processing(cin);
 			
-		//just for aesthetics 
+		//just for aesthetics - happens after every line
 		if(input == stdin)
 			aesthetics(); 
 	}
