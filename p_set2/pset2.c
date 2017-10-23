@@ -16,7 +16,6 @@ void error_message(const char *message, const char *error_val, const char *file_
 		fprintf(stderr, "%s\n", message);
 	else
 		fprintf(stderr, "%s Error value: %s. Name: %s\n", message, error_val, file_val);
-	exit(-1);
 }
 
 //take all elements in the directory and check if they are identical to the file given
@@ -46,15 +45,17 @@ void search_tree(char * file_path, char *s_path){
 	// going through each layer	
 	if(!(dir = opendir(s_path))) //check for error in opening a directory
 		error_message("ERROR: Could not open.", strerror(errno), s_path);		
-
-	char *next_path = (char *)malloc(strlen(s_path) + strlen(de -> d_name) + 2); 
-	sprintf(next_path, "%s/%s", s_path, de -> d_name); 
-	if(!lstat(next_path, &st))
-		error_message("ERROR: Could not lstat.", strerror(errno), next_path);
 	
 	while(de = readdir(dir)){
 		char * buf; 
 		int n_link = 0;
+
+		char *next_path = (char *)malloc(strlen(s_path) + strlen(de -> d_name) + 2); 
+		sprintf(next_path, "%s/%s", s_path, de -> d_name); 
+		if(!lstat(next_path, &st)){
+			error_message("ERROR: Could not lstat.", strerror(errno), next_path);
+			continue; 
+		}
 
 		if(!strcmp(de -> d_name, "..") || !strcmp(de -> d_name, "."))
 			continue;	
