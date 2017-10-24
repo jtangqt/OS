@@ -14,8 +14,12 @@
 #include <libgen.h>
 
 void error_message(const char *message, const char *error_val, const char *file_val){
-	if(!error_val)
-		fprintf(stderr, "%s\n", message);
+	if(!file_val){
+		if(!error_val)
+			fprintf(stderr, "%s\n", message);
+		else
+			fprintf(stderr, "%s Error value: %s\n", message, error_val);
+	}
 	else
 		fprintf(stderr, "%s Error value: %s. Name: %s\n", message, error_val, file_val);
 	exit(-1);
@@ -31,37 +35,80 @@ void aesthetics(){
 int processing(char *input){
 	//TODO
 	//parse to tokens
-	char line[1024];
-	char token[32]
-	memset(line, '\0', sizeof(line)); 
-	strcpy(dest, line);
-	char file_name[31]; 
+	char line[strlen(input)];
+	strncpy(line, input, strlen(input));
+	line[strlen(input) -1] = 0; 
+	
+	char *argv_new[1024];
+	int new = 0; 
+	char *in = NULL; 
+	char *a_out = NULL;
+	char *t_out = NULL; 
+	char *a_err = NULL; 
+	char *t_err = NULL; 
 
-	while(token = strtok(line, " ")){
+	char *token = strtok(line, " \t\n\r");
+
+	while(token){
 		//< 
 		if(token[0] == '<')
-			//open filename and redirect stdin
-			strcpy(file_name, token
+			in = token + 1; 
 		//>
-		if(token[0] == '>'){
+		else if(token[0] == '>'){
 			//>>
-			if(token[1] == '>')
-				//open/create/append filename and redirect stdout
+			if(strlen(token) > 1 && token[1] == '>')
+				a_out = token + 2; 
 			else
-				//open/create/truncate filename and redirect stdout
+				t_out = token + 1; 
 		}
 		//2>
-		if(token[0] == '2' && token[1] == '>'){
+		else if(strlen(token) > 1 && token[0] == '2' && token[1] == '>'){
 			//2>>
 			if(token[2] == '>')
-				//open/create/append filename and redirect stderr
+				a_err = token + 3; 
 			else
-				//open/create/truncate filename and redirect stderr
+				t_err = token + 2; 
+		}	
+		else{
+			if(new < 1023){
+				argv_new[new++] = token; 
+			}else
+				fprintf(stderr, "Too many arguments, truncating to 1023 arguments");
 		}
-	
+
+		token = strtok(NULL, " \t\n\r"); 
 	}
+
+	argv_new[new] = NULL; 
+
+	if(argv_new[0] != NULL && !strcmp(argv_new[0], "cd")){ //directory
+		if(new == 1)
+			error_message("ERROR: no directory path was specified.", 0, 0);
+		char *new_dir = argv_new[1]; 
+		fprintf(stderr, "Changing to the specified directory %s...\n", new_dir);
+		if(chdir(new_dir))
+			error_message("ERROR: could not open directory (perhaps try relative pathname)", strerror(errno), new_dir);
+	}	
 	
-	//do what the instructions say to do
+
+	if(in != NULL){
+		
+	}
+	if(a_out != NULL){
+		
+	}
+	if(t_out != NULL){
+		
+	}
+	if(a_err != NULL){
+		
+	}
+	if(t_err != NULL){
+		
+	}
+
+
+	//do what the instructions say to do -- 
 	//implement cd 
 	return 0; 
 }
@@ -85,10 +132,10 @@ int main(int argc, char **argv){
 	//see if it's getting information from the command line
 	while(fgets(cin, 1024, input) != NULL){
 		//if it needs to be processed - not a hashtag and not a new line
-		if(cin[0] != '#' && cin[0] != '\n') 
+		if(cin[0] != '#' && cin[0] != '\n'){
 			//understand the data
 			val += processing(cin);
-			
+		}
 		//just for aesthetics - happens after every line
 		if(input == stdin)
 			aesthetics(); 
