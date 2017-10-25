@@ -22,7 +22,7 @@ void error_message(const char *message, const char *error_val, const char *file_
 	}
 	else
 		fprintf(stderr, "%s Error value: %s. Name: %s\n", message, error_val, file_val);
-	exit(-1);
+	exit(1);
 }
 
 void aesthetics(){
@@ -32,8 +32,25 @@ void aesthetics(){
 	fprintf(stderr, "%s$ ", basename(cwd));
 }
 
+void redirect(int f, int ta, const char *filename){
+	int tmp; 
+	if((tmp = open(filename, O_RDONLY| ta| O_CREAT, 0666)) > 0){
+		if(dup2(tmp, f) < 0){
+			error_message("ERROR: could not redirect input.", strerror(errno), filename);
+			exit(1); 
+		}
+		if(close(tmp) < 0){
+			error_message("ERROR: could not close file.", strerror(errno), filename); 
+			exit(1); 
+		}
+	}
+	else{
+		error_message("ERROR: could not open file.", strerror(errno), filename); 
+		exit(1); 
+	}
+}
+
 int processing(char *input){
-	//TODO
 	//parse to tokens
 	char line[strlen(input)];
 	strncpy(line, input, strlen(input));
@@ -50,21 +67,16 @@ int processing(char *input){
 	char *token = strtok(line, " \t\n\r");
 
 	while(token){
-		//< 
-		if(token[0] == '<')
+		if(token[0] == '<') //< 
 			in = token + 1; 
-		//>
-		else if(token[0] == '>'){
-			//>>
-			if(strlen(token) > 1 && token[1] == '>')
+		else if(token[0] == '>'){ //>
+			if(strlen(token) > 1 && token[1] == '>') //>>
 				a_out = token + 2; 
 			else
 				t_out = token + 1; 
 		}
-		//2>
-		else if(strlen(token) > 1 && token[0] == '2' && token[1] == '>'){
-			//2>>
-			if(token[2] == '>')
+		else if(strlen(token) > 1 && token[0] == '2' && token[1] == '>'){ //2>
+			if(token[2] == '>') //2>>
 				a_err = token + 3; 
 			else
 				t_err = token + 2; 
@@ -90,27 +102,48 @@ int processing(char *input){
 			error_message("ERROR: could not open directory (perhaps try relative pathname)", strerror(errno), new_dir);
 	}	
 	
+	pid_t pid = fork(); 
+	if(pid == -1){
+		error_message("ERROR: could not fork to create a new process.", strerror(errno), NULL); 
+	}
+	else if(!pid){
+		int tmp; 
+		
+		if(in != NULL){
+			if((tmp = open(in, O_RDONLY, 0666)) > 0){
+				if(dup2(tmp, 0) < 0){
+					error_message("ERROR: could not redirect input.", strerror(errno), in); 
+					exit(1);
+				}
+			}
+			else{
+				error_message("ERROR: could not open file.", strerror(errno), in); 
+				exit(1);
+			}
+		}
+		fprintf(stderr, "debug1"); 
+		if(a_out != NULL){
+			redirect(1, O_APPEND, a_out); 
+		}
+		//fprintf(stderr, "debug2");
+		else if(t_out != NULL){
+			redirect(1, O_TRUNC, t_out); 
+		}
+		fprintf(stderr, "debug3"); 
+		if(a_err != NULL){
+			redirect(2, O_APPEND, a_err); 
+		}
+	//	fprintf(stderr, "debug4"); 
+		else if(t_err != NULL){
+			redirect(2, O_TRUNC, t_err); 
+		}
+		if(execvp(argv_new[0], argv_new) < 0){
+			error_message("ERROR: execvp() is not working", strerror(errno), argv_new[0]); 	
+		}
+	}
 
-	if(in != NULL){
-		
-	}
-	if(a_out != NULL){
-		
-	}
-	if(t_out != NULL){
-		
-	}
-	if(a_err != NULL){
-		
-	}
-	if(t_err != NULL){
-		
-	}
+	return 0;
 
-
-	//do what the instructions say to do -- 
-	//implement cd 
-	return 0; 
 }
 
 int main(int argc, char **argv){
@@ -119,7 +152,7 @@ int main(int argc, char **argv){
 	int val; 
 	char cin[1024]; //this gave a segfault when I did char * -> pointer 
 
-	//see if we're taking stdin or file
+	//see if we're taking stdin or file (for all commands)
 	if(argc == 1)
 		input = stdin; 
 	else if (!(input = fopen(argv[1], "r")))
