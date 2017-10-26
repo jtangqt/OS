@@ -33,12 +33,23 @@ void aesthetics(){
 }
 
 void redirect(int f, int ta, const char *filename){
+	fprintf(stderr, "redirecting, %s", filename);
 	int tmp; 
 	if((tmp = open(filename, O_RDONLY| ta| O_CREAT, 0666)) > 0){
+		fprintf(stderr, "opened file");
 		if(dup2(tmp, f) < 0){
-			error_message("ERROR: could not redirect input.", strerror(errno), filename);
-			exit(1); 
+			switch(f){
+				case 1:
+					error_message("ERROR: could not redirect to stdout.", strerror(errno), filename);
+					exit(1);
+				case 2: 
+					error_message("ERROR: could not redirect to stderr.", strerror(errno), filename);
+					exit(1); 
+				default: 
+					error_message("You should not be here.", 0, 0);
+			}
 		}
+		fprintf(stderr, "closed");
 		if(close(tmp) < 0){
 			error_message("ERROR: could not close file.", strerror(errno), filename); 
 			exit(1); 
@@ -121,7 +132,7 @@ int processing(char *input){
 				exit(1);
 			}
 		}
-		fprintf(stderr, "debug1"); 
+		//fprintf(stderr, "debug1"); 
 		if(a_out != NULL){
 			redirect(1, O_APPEND, a_out); 
 		}
@@ -129,7 +140,7 @@ int processing(char *input){
 		else if(t_out != NULL){
 			redirect(1, O_TRUNC, t_out); 
 		}
-		fprintf(stderr, "debug3"); 
+		//fprintf(stderr, "debug3"); 
 		if(a_err != NULL){
 			redirect(2, O_APPEND, a_err); 
 		}
@@ -138,7 +149,7 @@ int processing(char *input){
 			redirect(2, O_TRUNC, t_err); 
 		}
 		if(execvp(argv_new[0], argv_new) < 0){
-			error_message("ERROR: execvp() is not working", strerror(errno), argv_new[0]); 	
+			error_message("ERROR: execvp() failed", strerror(errno), argv_new[0]); 	
 		}
 	}
 
