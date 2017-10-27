@@ -32,24 +32,27 @@ void aesthetics(){
 	fprintf(stderr, "%s$ ", basename(cwd));
 }
 
-void redirect(int f, int ta, const char *filename){
-	fprintf(stderr, "redirecting, %s", filename);
+void redirect(int f, int fd, const char *filename){
+	//fprintf(stderr, "redirecting, %s", filename);
 	int tmp; 
-	if((tmp = open(filename, O_RDONLY| ta| O_CREAT, 0666)) > 0){
-		fprintf(stderr, "opened file");
+	if((tmp = open(filename, fd, 0666)) > 0){
+		//fprintf(stderr, "opened file");
 		if(dup2(tmp, f) < 0){
 			switch(f){
+				case 0:
+					fprintf(stderr, "ERROR: could not redirect from stdin. Error message: %s. File name: %s.\n", strerror(errno), filename);
+					exit(1);
 				case 1:
-					error_message("ERROR: could not redirect to stdout.", strerror(errno), filename);
+					fprintf(stderr, "ERROR: could not redirect to stdout. Error message: %s. File name: %s.\n", strerror(errno), filename);
 					exit(1);
 				case 2: 
-					error_message("ERROR: could not redirect to stderr.", strerror(errno), filename);
+					fprintf(stderr, "ERROR: could not redirect to stderr. Error message: %s. File name: %s.\n", strerror(errno), filename);
 					exit(1); 
 				default: 
 					error_message("You should not be here.", 0, 0);
 			}
 		}
-		fprintf(stderr, "closed");
+		//fprintf(stderr, "closed");
 		if(close(tmp) < 0){
 			error_message("ERROR: could not close file.", strerror(errno), filename); 
 			exit(1); 
@@ -105,12 +108,16 @@ int processing(char *input){
 	argv_new[new] = NULL; 
 
 	if(argv_new[0] != NULL && !strcmp(argv_new[0], "cd")){ //directory
-		if(new == 1)
-			error_message("ERROR: no directory path was specified.", 0, 0);
+		if(new == 1){
+			fprintf(stderr, "ERROR: no directory path was specified.");
+			return 1; 
+		}
 		char *new_dir = argv_new[1]; 
-		fprintf(stderr, "Changing to the specified directory %s...\n", new_dir);
-		if(chdir(new_dir))
-			error_message("ERROR: could not open directory (perhaps try relative pathname)", strerror(errno), new_dir);
+		if(chdir(new_dir)){
+			fprintf(stderr, "ERROR: could not open directory (perhaps try relative pathname). Error message: %s. Path name: %s.\n", strerror(errno), new_dir);
+			return 1; 
+		}
+		return 0; 
 	}	
 	
 	pid_t pid = fork(); 
@@ -121,35 +128,31 @@ int processing(char *input){
 		int tmp; 
 		
 		if(in != NULL){
-			if((tmp = open(in, O_RDONLY, 0666)) > 0){
-				if(dup2(tmp, 0) < 0){
-					error_message("ERROR: could not redirect input.", strerror(errno), in); 
-					exit(1);
-				}
-			}
-			else{
-				error_message("ERROR: could not open file.", strerror(errno), in); 
-				exit(1);
-			}
+			fprintf(stderr, "in in\n");
+			redirect(0, O_RDONLY, in);
 		}
 		//fprintf(stderr, "debug1"); 
 		if(a_out != NULL){
-			redirect(1, O_APPEND, a_out); 
+			fprintf(stderr, "in a_out\n");
+			redirect(1, O_RDWR| O_APPEND| O_CREAT, a_out); 
 		}
 		//fprintf(stderr, "debug2");
 		else if(t_out != NULL){
-			redirect(1, O_TRUNC, t_out); 
+			fprintf(stderr, "in t_out\n");
+			redirect(1, O_RDWR| O_TRUNC| O_CREAT, t_out); 
 		}
 		//fprintf(stderr, "debug3"); 
 		if(a_err != NULL){
-			redirect(2, O_APPEND, a_err); 
+			fprintf(stderr, "in a_err\n");
+			redirect(2, O_RDWR| O_APPEND| O_CREAT, a_err); 
 		}
 	//	fprintf(stderr, "debug4"); 
 		else if(t_err != NULL){
-			redirect(2, O_TRUNC, t_err); 
+			fprintf(stderr, "in t_err\n");
+			redirect(2, O_RDWR| O_TRUNC| O_CREAT, t_err); 
 		}
 		if(execvp(argv_new[0], argv_new) < 0){
-			error_message("ERROR: execvp() failed", strerror(errno), argv_new[0]); 	
+			error_message("ERROR: execvp() failed.", strerror(errno), argv_new[0]); 	
 		}
 	}
 
