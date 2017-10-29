@@ -5,15 +5,15 @@
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <libgen.h>
+#include <dirent.h>
+#include <sys/resource.h>
 #include <sys/stat.h> 
 #include <sys/types.h>
-#include <dirent.h>
-#include <wait.h>
+#include <sys/wait.h>
 #include <sys/time.h>
-#include <sys/resource.h>
-#include <libgen.h>
 
-void error_message(const char *message, const char *error_val, const char *file_val){
+int error_message(const char *message, const char *error_val, const char *file_val){
 	if(!file_val){
 		if(!error_val)
 			fprintf(stderr, "%s\n", message);
@@ -22,17 +22,17 @@ void error_message(const char *message, const char *error_val, const char *file_
 	}
 	else
 		fprintf(stderr, "%s Error value: %s. Name: %s\n", message, error_val, file_val);
-	exit(1);
+	return 1;
 }
 
 void aesthetics(){
 	char cwd[1024];
 	if(!getcwd(cwd, 1024))
-		error_message("ERROR: could not open directory", strerror(errno), cwd);
+		fprintf(stderr, "ERROR: could not open directory. Error Value: %s. Directory Name: %s.\n", strerror(errno), cwd);
 	fprintf(stderr, "%s$ ", basename(cwd));
 }
 
-void redirect(int f, int fd, const char *filename){
+int redirect(int f, int fd, const char *filename){
 	//fprintf(stderr, "redirecting, %s", filename);
 	int tmp; 
 	if((tmp = open(filename, fd, 0666)) > 0){
@@ -41,27 +41,24 @@ void redirect(int f, int fd, const char *filename){
 			switch(f){
 				case 0:
 					fprintf(stderr, "ERROR: could not redirect from stdin. Error message: %s. File name: %s.\n", strerror(errno), filename);
-					exit(1);
+					_exit(1);
 				case 1:
 					fprintf(stderr, "ERROR: could not redirect to stdout. Error message: %s. File name: %s.\n", strerror(errno), filename);
-					exit(1);
+					_exit(1);
 				case 2: 
 					fprintf(stderr, "ERROR: could not redirect to stderr. Error message: %s. File name: %s.\n", strerror(errno), filename);
-					exit(1); 
+					_exit(1); 
 				default: 
-					error_message("You should not be here.", 0, 0);
+					return error_message("You should not be here.", 0, 0);
 			}
 		}
 		//fprintf(stderr, "closed");
-		if(close(tmp) < 0){
-			error_message("ERROR: could not close file.", strerror(errno), filename); 
-			exit(1); 
-		}
+		if(close(tmp) < 0)
+			return error_message("ERROR: could not close file.", strerror(errno), filename); 
 	}
-	else{
-		error_message("ERROR: could not open file.", strerror(errno), filename); 
-		exit(1); 
-	}
+	else
+		return error_message("ERROR: could not open file.", strerror(errno), filename); 
+	return 0; 
 }
 
 int processing(char *input){
@@ -107,26 +104,27 @@ int processing(char *input){
 
 	argv_new[new] = NULL; 
 
+	struct timeval s_time; 
+	if(gettimeofday(&s_time, NULL)){
+		error_message("ERROR: could not get start time.", strerror(errno), 0);
+	}
+
 	if(argv_new[0] != NULL && !strcmp(argv_new[0], "cd")){ //directory
-		if(new == 1){
-			fprintf(stderr, "ERROR: no directory path was specified.");
-			return 1; 
-		}
+		if(new == 1)
+			return error_message("ERROR: no directory path was specified.", strerror(errno), 0); 
 		char *new_dir = argv_new[1]; 
 		if(chdir(new_dir)){
-			fprintf(stderr, "ERROR: could not open directory (perhaps try relative pathname). Error message: %s. Path name: %s.\n", strerror(errno), new_dir);
-			return 1; 
+			return error_message("ERROR: could not open directory (perhaps try relative pathname). Error message: %s. Path name: %s.\n", strerror(errno), new_dir);
 		}
 		return 0; 
 	}	
-	
+
+
 	pid_t pid = fork(); 
 	if(pid == -1){
 		error_message("ERROR: could not fork to create a new process.", strerror(errno), NULL); 
 	}
 	else if(!pid){
-		int tmp; 
-		
 		if(in != NULL){
 			fprintf(stderr, "in in\n");
 			redirect(0, O_RDONLY, in);
@@ -139,7 +137,7 @@ int processing(char *input){
 		//fprintf(stderr, "debug2");
 		else if(t_out != NULL){
 			fprintf(stderr, "in t_out\n");
-			redirect(1, O_RDWR| O_TRUNC| O_CREAT, t_out); 
+			 redirect(1, O_RDWR| O_TRUNC| O_CREAT, t_out); 
 		}
 		//fprintf(stderr, "debug3"); 
 		if(a_err != NULL){
@@ -152,7 +150,7 @@ int processing(char *input){
 			redirect(2, O_RDWR| O_TRUNC| O_CREAT, t_err); 
 		}
 		if(execvp(argv_new[0], argv_new) < 0){
-			error_message("ERROR: execvp() failed.", strerror(errno), argv_new[0]); 	
+			return error_message("ERROR: execvp() failed.", strerror(errno), argv_new[0]); 	
 		}
 	}
 
@@ -189,6 +187,5 @@ int main(int argc, char **argv){
 	}
 
 	return val; 
-
 	
 }
