@@ -153,6 +153,9 @@ int processing(char *input){
 			return error_message("ERROR: execvp() failed.", strerror(errno), argv_new[0]); 	
 		}
 	}
+	else{
+		
+	}
 
 	return 0;
 
