@@ -164,9 +164,9 @@ int processing(char *input){
 			}
 			timersub(&e_time, &s_time, &d_time);
 			fprintf(stderr, "Command: %sReturn Code: %i\n", input, WEXITSTATUS(wstatus)); 
-			fprintf(stderr, "Real time: %01d.%03d\n", d_time.tv_sec, d_time.tv_usec); 
-			fprintf(stderr, "User time: %01d.%03d\n", ru.ru_utime.tv_sec, ru.ru_utime.tv_usec); 
-			fprintf(stderr, "System time: %01d.%03d\n", ru.ru_stime.tv_sec, ru.ru_stime.tv_usec); 
+			fprintf(stderr, "Real time: %01ld.%03ld\n", d_time.tv_sec, d_time.tv_usec); 
+			fprintf(stderr, "User time: %01ld.%03ld\n", ru.ru_utime.tv_sec, ru.ru_utime.tv_usec); 
+			fprintf(stderr, "System time: %01ld.%03ld\n", ru.ru_stime.tv_sec, ru.ru_stime.tv_usec); 
 		}
 	}
 	return 0;
