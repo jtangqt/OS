@@ -1,4 +1,4 @@
-#!/
+#!/root/projects/OS-2017/p_set3/mysh
 #This is an example of a shell script that your shell must execute, notice that lines starting with # sign are ignored as comments!
 #Let's say this here file is called testme.sh. You created it with vi testme.sh ; chmod +x testme.sh# You invoked it with ./testme.sh
 cat >cat.out
