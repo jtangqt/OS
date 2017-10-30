@@ -132,28 +132,18 @@ int processing(char *input){
 		error_message("ERROR: could not fork to create a new process.", strerror(errno), NULL); 
 	}
 	else if(!pid){
-		if(in != NULL){
-			fprintf(stderr, "in in\n");
+		if(in != NULL)
 			redirect(0, O_RDONLY, in);
-		}
 
-		if(a_out != NULL){
-			fprintf(stderr, "in a_out\n");
+		if(a_out != NULL)
 			redirect(1, O_RDWR| O_APPEND| O_CREAT, a_out); 
-		}
-		else if(t_out != NULL){
-			fprintf(stderr, "in t_out\n");
+		else if(t_out != NULL)
 			 redirect(1, O_RDWR| O_TRUNC| O_CREAT, t_out); 
-		}
 
-		if(a_err != NULL){ 
-			fprintf(stderr, "in a_err\n");
+		if(a_err != NULL)
 			redirect(2, O_RDWR| O_APPEND| O_CREAT, a_err); 
-		}
-		else if(t_err != NULL){
-			fprintf(stderr, "in t_err\n");
+		else if(t_err != NULL)
 			redirect(2, O_RDWR| O_TRUNC| O_CREAT, t_err); 
-		}
 		
 		if(execvp(argv_new[0], argv_new) < 0){
 			error_message("ERROR: execvp() failed.", strerror(errno), argv_new[0]);
