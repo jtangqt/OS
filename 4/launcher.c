@@ -46,6 +46,7 @@ int main(int argc, char **argv){
 	int pipe_fd1[2], pipe_fd2[2]; //read and write
 	int stat;
 	struct rusage ru;
+	pid_t w_pid1, w_pid2, w_pid3;
 
 	if(argc > 2)
 		error_message("ERROR: Please follow this format\n./launcher [number].", strerror(errno), 0); 
@@ -113,35 +114,39 @@ int main(int argc, char **argv){
 			
 			else{
 				
-				pid_t pid_1; 
-				while(pid_1 = waitpid(-1, &wstatus, 0) > 0 && pid_1 != 1){
-					if(WIFEXITED(wstatus))
-						signals(pid_1, WEXITSTATUS(wstatus), "exited with:");
-					else if(WIFSIGNALED(wstatus)){
-						if(WCOREDUMP(wstatus))
-							signals(pid_1, WTERMSIG(wstatus), "exited, killed by signal with coredump:");
-						else 
-							signals(pid_1, WTERMSIG(wstatus), "exited, killed by signal:");
-					}
-					else if(WIFSTOPPED(wstatus))
-						signals(pid_1, WSTOPSIG(wstatus), "exited, killed by signal:");
-				}
+				// pid_t pid_1; 
+				// while(pid_1 = waitpid(-1, &wstatus, 0) > 0 && pid_1 != 1){
+				// 	if(WIFEXITED(wstatus))
+				// 		signals(pid_1, WEXITSTATUS(wstatus), "exited with:");
+				// 	else if(WIFSIGNALED(wstatus)){
+				// 		if(WCOREDUMP(wstatus))
+				// 			signals(pid_1, WTERMSIG(wstatus), "exited, killed by signal with coredump:");
+				// 		else 
+				// 			signals(pid_1, WTERMSIG(wstatus), "exited, killed by signal:");
+				// 	}
+				// 	else if(WIFSTOPPED(wstatus))
+				// 		signals(pid_1, WSTOPSIG(wstatus), "exited, killed by signal:");
+				// }
 				
-				if(errno == EINTR && pid_1 < 0){
-					fprintf(stderr,"\nwaitpid failure by signal interuption by calling process:%s\n", strerror(errno));
-					exit(EXIT_FAILURE);
-				}
+				// if(errno == EINTR && pid_1 < 0){
+				// 	fprintf(stderr,"\nwaitpid failure by signal interuption by calling process:%s\n", strerror(errno));
+				// 	exit(EXIT_FAILURE);
+				// }
+
+				//w_pid1 = wait3(&stat, 0, &ru);
+				waitpid(pid_1, &stat, 0);
+				fprintf(stderr,"Process %d exited with %d\n", w_pid1, stat);
+				//w_pid2 = wait3(&stat, 0, &ru);
+				waitpid(pid_2, &stat, 0);
+				fprintf(stderr,"Process %d exited with %d\n", w_pid2, stat);
+				//w_pid3 = wait3(&stat, 0, &ru);
+				waitpid(pid_3, &stat, 0);
+				fprintf(stderr,"Process %d exited with %d\n", w_pid3, stat);
 			}
 		}
 	}
 
-	pid_t w_pid1, w_pid2, w_pid3;
-	w_pid1 = wait3(&stat, 0, &ru);
-	fprintf(stderr,"Process %d exited with %d\n", w_pid1, stat);
-	w_pid2 = wait3(&stat, 0, &ru);
-	fprintf(stderr,"Process %d exited with %d\n", w_pid2, stat);
-	w_pid3 = wait3(&stat, 0, &ru);
-	fprintf(stderr,"Process %d exited with %d\n", w_pid3, stat);
+
 
 	return 0; 
 }
