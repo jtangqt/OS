@@ -4,11 +4,20 @@
 #include <string.h>
 #include <ctype.h>
 #include "uthash/include/uthash.h"
+#include <signal.h>
+
+int matched; 
 
 struct my_struct{
 	char id[30];
 	UT_hash_handle hh; 
 };
+
+void sig_handler(int signo){
+	fprintf(stderr,"Total Matched Words: %d\n", matched);
+	signal(SIGPIPE, SIG_DFL);
+	raise(SIGPIPE);
+}
 
 int main(int argc, char **argv){
 	
@@ -16,6 +25,7 @@ int main(int argc, char **argv){
 	char *line = NULL;
     size_t len = 0;
 
+    signal(SIGPIPE, sig_handler);
 	if(argc < 2) exit(1); 
 
 	FILE *wordlist = fopen(argv[1], "r"); 
@@ -52,7 +62,6 @@ int main(int argc, char **argv){
 	fprintf(stderr, "Accepted: %i and rejected: %i\n", a, r);
 
 	char cin[30];
-	int matched = 0; 
 
 	while(fgets(cin, 1024, stdin) != NULL){ // getline from stdin and then search through each word in the wordlist and if there's a match then print out
 		struct my_struct *t; 
@@ -70,4 +79,5 @@ int main(int argc, char **argv){
 		}
 	}
 	fprintf(stderr, "Matched: %i Words\n", matched); 
+	return 0; 
 }
