@@ -133,14 +133,22 @@ int main(int argc, char **argv){
 				// 	exit(EXIT_FAILURE);
 				// }
 
+				close_fd(pipe_fd1[0]);
+				close_fd(pipe_fd1[1]);
+				close_fd(pipe_fd2[0]);
+				close_fd(pipe_fd2[1]);
+
 				//w_pid1 = wait3(&stat, 0, &ru);
 				waitpid(pid_1, &stat, 0);
-				fprintf(stderr,"Process %d exited with %d\n", w_pid1, stat);
+				
 				//w_pid2 = wait3(&stat, 0, &ru);
 				waitpid(pid_2, &stat, 0);
-				fprintf(stderr,"Process %d exited with %d\n", w_pid2, stat);
+
 				//w_pid3 = wait3(&stat, 0, &ru);
 				waitpid(pid_3, &stat, 0);
+
+				fprintf(stderr,"Process %d exited with %d\n", w_pid1, stat);
+				fprintf(stderr,"Process %d exited with %d\n", w_pid2, stat);				
 				fprintf(stderr,"Process %d exited with %d\n", w_pid3, stat);
 			}
 		}

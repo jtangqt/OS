@@ -15,8 +15,8 @@ struct my_struct{
 
 void sig_handler(int signo){
 	fprintf(stderr,"Total Matched Words: %d\n", matched);
-	//signal(SIGPIPE, SIG_DFL);
-	//raise(SIGPIPE);
+	signal(SIGPIPE, SIG_DFL);
+	raise(SIGPIPE);
 }
 
 int main(int argc, char **argv){
@@ -25,7 +25,7 @@ int main(int argc, char **argv){
 	char *line = NULL;
     size_t len = 0;
 
-    //signal(SIGPIPE, sig_handler);
+    signal(SIGPIPE, sig_handler);
 	if(argc < 2) exit(1); 
 
 	FILE *wordlist = fopen(argv[1], "r"); 
