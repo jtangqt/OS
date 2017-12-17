@@ -6,6 +6,8 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
+#include <time.h> 
 
 int create_fd(int length){
 	int fd; 
@@ -25,15 +27,22 @@ int create_fd(int length){
 int test_1(){
 	printf("Executing Test #1 (write to r/o mmap): ");
 	int fd = create_fd(10);
+	int new_fd;
+	int hehe; 
+	char out_c[10];
+	new_fd = open(fd, O_RDONLY, 0666);
+	while(hehe = read(new_fd, out_c, sizeof(out))){
+		printf("%c", hehe);
+	}
 }
 
-int test_23(int flags){
+int test_23(int flag){
 	if(flag = MAP_SHARED)
 		printf("Executing Test #2 (writing to MAP_SHARED): ");
 	else if(flag = MAP_PRIVATE)
 		printf("Executing Test #3 (writing to MAP_PRIVATE): ");
 	else
-		fprintf(stderr, "Invalid command for test 2 or 3")
+		fprintf(stderr, "Invalid command for test 2 or 3");
 }
 
 int test_4(){
