@@ -13,11 +13,18 @@ int create_fd(int length){
 	if((fd = open("file.txt", O_WRONLY | O_CREAT | O_TRUNC, 0666)) == -1)
 		fprintf(stderr, "ERROR MESSAGE");
 
+	srand(time(NULL));
+	for(int i = 0; i < length; i++){
+		if(write(fd, rand()%9, 1) < 1)
+			fprintf(stderr, "ERROR MESSAGE");
+	}
+
 	return fd; 
 }
 
 int test_1(){
 	printf("Executing Test #1 (write to r/o mmap): ");
+	int fd = create_fd(10);
 }
 
 int test_23(int flags){
