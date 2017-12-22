@@ -17,13 +17,14 @@ void sig_handler(int sig){
 
 int create_fd(int length){
 	int fd;
+	char buf[1];
 
 	if((fd = open("file.txt", O_RDWR|O_CREAT|O_TRUNC, 0666)) < 0){
 		fprintf(stderr, "ERROR MESSAGE: ");
 		exit(255);
 	}
 	srand(time(NULL));
-	for(int i = 0; i < length, i++){
+	for(int i = 0; i < length; i++){
 		buf[0] = rand()%10; 
 		if(write(fd, buf, 1) < 0){
 			fprintf(stderr, "ERROR MESSAGE: ");
