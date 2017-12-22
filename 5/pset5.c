@@ -16,21 +16,20 @@ void sig_handler(int sig){
 }
 
 int create_fd(int length){
-	FILE *fp; 
-	int fd; 
+	int fd;
 
-	if((fp = fopen("file.txt", "w+")) == NULL)
-		fprintf(stderr, "ERROR MESSAGE");
-
-	srand(time(NULL));
-	char buffer[1]; 
-
-	for(int i = 0; i < length; i++){
-		fprintf(fp, "%d", rand()%10);
+	if((fd = open("file.txt", O_RDWR|O_CREAT|O_TRUNC, 0666)) < 0){
+		fprintf(stderr, "ERROR MESSAGE: ");
+		exit(255);
 	}
-
-	fseek(fp, 0, SEEK_SET);
-	fd = fileno(fp);
+	srand(time(NULL));
+	for(int i = 0; i < length, i++){
+		buf[0] = rand()%10; 
+		if(write(fd, buf, 1) < 0){
+			fprintf(stderr, "ERROR MESSAGE: ");
+			exit(255);
+		}
+	}
 	return fd; 
 }
 
@@ -90,7 +89,7 @@ int test_23(int flag){
 
 	if(lseek(fd, offset, SEEK_SET) < 0)
 		fprintf(stderr, "ERROR MESSAGE LSEEK:");
-	if(read(fd, buf, offset) < 0)
+	if(read(fd, buf, 1) < 0)
 		fprintf(stderr, "ERROR MESSAGE READ: ");
 
 	printf("map[%d] returned %d", offset, map[offset]);
