@@ -53,7 +53,7 @@ int test_1(){
 	printf("Executing Test #1 (write to r/o mmap): \n");
 	int fd = create_fd(length);	
 
-	if((map = mmap(NULL, length, PROT_READ, MAP_SHARED, fd, 0)) == MAP_FAILED){
+	if((map = mmap(NULL, length, PROT_WRITE, MAP_SHARED, fd, 0)) == MAP_FAILED){
 		fprintf(stderr, "ERROR MESSAGE  could not map, %s\n", strerror(errno));
 		exit(255);
 	}
@@ -79,7 +79,7 @@ int test_23(int flag){
 		fprintf(stderr, "Invalid command for test 2 or 3");
 
 	int fd = create_fd(length);
-		if((map = mmap(NULL, length*sizeof(int), PROT_READ, flag, fd, 0)) == MAP_FAILED){
+		if((map = mmap(NULL, length, PROT_WRITE, flag, fd, 0)) == MAP_FAILED){
 		fprintf(stderr, "ERROR MESSAGE  could not map, %s\n", strerror(errno));
 		exit(255);
 	}
