@@ -15,13 +15,20 @@ void sig_handler(int sig){
 	exit(sig);
 }
 
+void error_message(const char *message, const char *error_val){
+	if(!error_val)
+		fprintf(stderr, "%s\n", message);
+	else
+		fprintf(stderr, "%s Error value: %s.\n", message, error_val);
+}
+
 int create_fd(int length){
 	int fd; 
 	char buf[1];
 
 
 	if((fd = open("file.txt", O_RDWR|O_CREAT|O_TRUNC, 0666)) < 0){
-		fprintf(stderr, "ERROR MESSAGE: ");
+		error_message("ERROR: could not open properly", strerror(errno));
 		exit(255);
 	}
 	srand(time(NULL));
@@ -30,14 +37,14 @@ int create_fd(int length){
 		if((rand() % 36) <= 10){
 			sprintf(buf, "%i", rand()%10);
 			if(write(fd, buf, 1) < 0){
-				fprintf(stderr, "ERROR MESSAGE: ");
+				error_message("ERROR: could not write properly", strerror(errno));
 				exit(255);
 			}
 		}
 		else{
 			buf[0] = rand()%26 + 'A'; 
 			if(write(fd, buf, 1) < 0){
-				fprintf(stderr, "ERROR MESSAGE: ");
+				error_message("ERROR: could not write properly", strerror(errno));
 				exit(255);
 			}	
 		}
@@ -49,11 +56,11 @@ int create_fd(int length){
 void map_close_error(int length, int fd, char * map){
 	if(munmap(map, length) < 0){
 		close(fd);
-		fprintf(stderr, "ERROR MESSAGE could not munmap, %s\n", strerror(errno));
+		error_message("ERROR: could not munmap file from memory.", strerror(errno));
 		exit(255);
 	}
 	if(close(fd) < 0){
-		fprintf(stderr, "ERROR MESSAGE could not close, %s\n", strerror(errno));
+		error_message("ERROR: could not close file descriptor.", strerror(errno));
 		exit(255);
 	}
 }
@@ -66,7 +73,7 @@ int test_1(){
 	int fd = create_fd(length);	
 
 	if((map = mmap(NULL, length, PROT_READ, MAP_SHARED, fd, 0)) == MAP_FAILED){
-		fprintf(stderr, "ERROR MESSAGE  could not map, %s\n", strerror(errno));
+		error_message("ERROR: could not mmap file from memory.", strerror(errno));
 		exit(255);
 	}
 
@@ -95,11 +102,11 @@ int test_23(int flag){
 		out_flag = "MAP_PRIVATE";
 	}
 	else
-		fprintf(stderr, "Invalid command for test 2 or 3");
+		error_message("ERROR: invalid input for 2 or 3.", strerror(errno));
 
 	int fd = create_fd(length);
-		if((map = mmap(NULL, length, PROT_WRITE, flag, fd, 0)) == MAP_FAILED){
-		fprintf(stderr, "ERROR MESSAGE  could not map, %s\n", strerror(errno));
+	if((map = mmap(NULL, length, PROT_WRITE, flag, fd, 0)) == MAP_FAILED){
+		error_message("ERROR: could not mmap file from memory.", strerror(errno));
 		exit(255);
 	}
 
@@ -107,33 +114,139 @@ int test_23(int flag){
 	map[offset] = 'J';
 
 	if(lseek(fd, offset, SEEK_SET) < 0)
-		fprintf(stderr, "ERROR MESSAGE LSEEK:");
+		error_message("ERROR: could not lseek properly", strerror(errno));
 	if(read(fd, buf, 1) < 0)
-		fprintf(stderr, "ERROR MESSAGE READ: ");
+		error_message("ERROR: could not read properly", strerror(errno));
 
 	if(buf[0] == 'J')
-		private = 1;
-	else
 		private = 0;
+	else
+		private = 1;
 
-	printf("Updated map[%d] with \'%c\' for %s. Map %s private.\n", offset, map[offset], out_flag, private ? "is not": "is");
+	printf("Updated map[%d] with \'%c\' for %s. Map %s private.\n", offset, map[offset], out_flag, private ? "is": "is not");
 
 	map_close_error(length, fd, map);
 
-	private ? exit(1) : exit(0);
+	private ? exit(0) : exit(1);
 
 }
 
 int test_4(){
-	printf("Executing Test #4 (writing beyond the edge): ");
+	char * map;
+	size_t length = 6009;
+	struct stat sb; 
+
+	printf("Executing Test #4 (writing beyond the edge): \n");
+
+	int fd = create_fd(length);
+	
+	if(fstat(fd, &sb) < 0){
+		error_message("ERROR: could not fstat properly.", strerror(errno));
+		exit(255);
+	}
+	
+	int size_1 = sb.st_size; 
+	
+	if((map = mmap(NULL, length, PROT_WRITE, MAP_SHARED, fd, 0)) == MAP_FAILED){
+		error_message("ERROR: could not mmap file from memory.", strerror(errno));
+		exit(255);
+	}
+
+	printf("map[%d]'s original size is %d, writing a new value at the next byte: D\n", map[length-1], size_1);
+	map[length] = 'D';
+
+	if(fstat(fd, &sb) < 0){
+		error_message("ERROR: could not fstat properly.", strerror(errno));
+		exit(255);
+	}
+
+	int size_2 = sb.st_size;
+	printf("map's new size after writing a new value is %d, the value at map[%zu] is %d\n", size_2, length, map[length]);
+
+	if(size_1 == size_2){
+		map_close_error(length, fd, map);
+		printf("The sizes are the same. \n");
+		exit(1);
+	}
+	else{
+		map_close_error(length, fd, map);
+		printf("The sizes are different.\n");
+		exit(0);
+	}
+
 }
 
 int test_5(){
-	printf("Executing Test #5 (writing into a hole): ");
+
+	char *map;
+	size_t length = 6009;
+	char buf[1];
+	struct stat sb; 
+	int fd, offset;
+
+	fd = create_fd(length);
+
+	printf("Executing Test #5 (writing into a hole): \n");
+
+	if((map = mmap(NULL, length, PROT_WRITE, MAP_SHARED, fd, 0)) == MAP_FAILED){
+		error_message("ERROR: could not mmap file from memory.", strerror(errno));
+		exit(255);
+	}
+
+	map[length] = 'X';
+	buf[0] = 'A';
+
+	printf("map's original size is %zu, writing a new value one byte beyond the last byte: X\n", length);
+
+	if(lseek(fd, length + 16, SEEK_SET) < 0){
+		error_message("ERROR: could not lseek properly", strerror(errno));
+		exit(255);
+	}
+	if(write(fd, buf, 1) < 0){
+		error_message("ERROR: could not write properly", strerror(errno));
+		exit(255);
+	}
+	if(lseek(fd, length, SEEK_SET) < 0){
+		error_message("ERROR: could not lseek properly", strerror(errno));
+		exit(255);
+	}
+	if(read(fd, buf, 1) < 0){
+		error_message("ERROR: could not read properly", strerror(errno));
+		exit(255);
+	}
+
+	printf("Read from \'one byte beyond last byte\': %c\n", buf[0]);
+
+	if(buf[0] == 'X'){
+		map_close_error(length, fd, map);
+		printf("Writing into hole is visible. \n");
+		exit(0);
+	}else{
+		map_close_error(length, fd, map);
+		printf("Writing to hole is not visible. \n");
+		exit(1);
+	}
+
 }
 
 int test_6(){
-	printf("Executing Test #6 (reading beyond the edges): ");
+	int fd, length = 2000;
+	char *map; 
+
+	printf("Executing Test #6 (reading beyond the edges): \n");
+
+	if((map = mmap(NULL, 8192, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0)) == MAP_FAILED){
+		error_message("ERROR: could not mmap file from memory.", strerror(errno));
+		exit(255);
+	}
+
+	printf("map[3000]: \'%d\'\n", map[3000]);
+	printf("map[6000]: \'%d\'\n", map[6000]);
+
+	map_close_error(length, fd, map);
+
+	exit(0);
+
 }
 
 int main(int argc, char **argv){
@@ -143,7 +256,7 @@ int main(int argc, char **argv){
 	}
 
 	if(argc > 2 || argc == 1){
-		fprintf(stderr, "ERROR MESSAGE");
+		error_message("ERROR: not enough input arguments/too many input arguments", 0);
 		return 1; 
 	}
 	else{
@@ -167,7 +280,7 @@ int main(int argc, char **argv){
 				test_6(); 
 				break; 
 			default:
-				fprintf(stderr, "ERROR MESSAGE");
+				error_message("ERROR: unidentified input test value, choose a value from 1-6.", strerror(errno));
 				return 1; 
 		}
 	}
