@@ -1,8 +1,8 @@
 .text
 
-.globl _tas
+.globl tas
 
-_tas:
+tas:
 pushq	%rbp
 movq	%rsp, %rbp
 movq	$1, %rax

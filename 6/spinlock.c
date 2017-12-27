@@ -1,7 +1,7 @@
 #include "spinlock.h"
 
 void spin_lock(struct spinlock *l){
-	while(!tas(&(l -> p_lock)));
+	while(tas(&(l -> p_lock)));
 }
 
 void spin_unlock(struct spinlock *l){
