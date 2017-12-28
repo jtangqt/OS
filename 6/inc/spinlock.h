@@ -13,8 +13,9 @@
 
 typedef struct spinlock{
 	volatile char p_lock;
-}spinlock;
+} spinlock;
 
+void error_message(const char *message, const char *error_val);
 void spin_lock(struct spinlock *l);
 void spin_unlock(struct spinlock *l);
 int tas(volatile char *l);
