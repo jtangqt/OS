@@ -5,7 +5,7 @@ INCLUDE_OPTS = $(foreach d, $(INCLUDE), -I$d)
 CXX = gcc
 
 OUT_FILE = fifo_test spinlock_test
-OUT_DEPS = src/spinlock.c inc/*
+OUT_DEPS = src/cv.c src/fifo.c src/spinlock.c inc/*
 
 all: $(OUT_FILE)
 

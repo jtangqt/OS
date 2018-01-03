@@ -60,7 +60,7 @@ int main(int argc, char **argv){
 	fprintf(stderr, "Beginning test with %d writers, %d each\n", n_writers, n_items);
 
 	for(int i = 0; i < n_writers; i++){
-		fprintf(stderr, "before all forks");
+		//fprintf(stderr, "before all forks");
 		if((pid[i] = fork() < 0)){
 			fprintf(stderr, "ERROR MESSAGE");
 			return 255; 
@@ -70,8 +70,7 @@ int main(int argc, char **argv){
 			unsigned long buf[n_items];
 			for(int j = 0; j < n_items; j++){
 				//fprintf(stderr, "%d %d\n", i, j);
-				int c;
-				if(c = getpid() )
+				//if(c = getpid() )
 				buf[j] = j + getpid()*10000;
 				fifo_wr(tmp, buf[j]);
 				//fprintf(stderr, "writer %d wrote %d and %lu\n", i, j, buf[j]);
